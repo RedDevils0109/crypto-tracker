@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react'
-import { CryptoState } from '../CryptoContext'
+
 import { numberWithCommas } from './Banner/Carousel'
-import { CoinList } from '../config/api'
+import { CoinList, header } from '../config/api'
 import { ThemeProvider, createTheme, } from '@mui/material/styles';
 import {
     Container, Typography, TextField, TableContainer, TableHead, TableBody, Paper, LinearProgress, Table, TableRow, TableCell
     , Pagination
 } from '@mui/material';
+import Category from './Category';
 import axios from 'axios'
 import { useNavigate } from 'react-router-dom';
 
@@ -14,7 +15,7 @@ const CoinsTable = () => {
     const [coinList, setCoinList] = useState([])
 
     const [loading, setLoading] = useState(true)
-    const { currency, symbol } = CryptoState()
+
     const [search, setSearch] = useState("")
     const [page, setPage] = useState(1)
     const [order, setOrder] = useState({ field: "", ascending: true })
@@ -22,8 +23,10 @@ const CoinsTable = () => {
     const navigate = useNavigate();
 
     const fetchCoinList = async () => {
-        const response = await axios.get(CoinList(currency))
-        return (response.data)
+        const { data } = await axios.get(CoinList(), { headers: header })
+        const { coins } = data.data
+
+        return (coins)
     }
     useEffect(() => {
         const fetchData = async () => {
@@ -33,7 +36,7 @@ const CoinsTable = () => {
         };
         fetchData();
         setPage(1)
-    }, [currency]);
+    }, []);
     useEffect(() => {
         const sortedList = [...coinList].sort((a, b) => {
             const fieldA = a[order.field];
@@ -54,7 +57,13 @@ const CoinsTable = () => {
     }, [page]);
     useEffect(() => {
         setPage(1)
-    }, [search])
+
+    }, [search, coinList])
+    useEffect(() => {
+        setPage(1)
+        setSearch("")
+
+    }, [coinList])
 
 
     const handleSearch = () => {
@@ -68,10 +77,10 @@ const CoinsTable = () => {
         },
     });
     const headMap = {
-        'Coin': 'id',
-        'Price': 'current_price',
-        '24 Change': 'market_cap_change_percentage_24h',
-        'Market Cap': 'market_cap_rank'
+        'Coin': 'name',
+        'Price': 'price',
+        '24 Change': 'change',
+        'Market Cap': 'rank'
     };
 
     const headArray = Object.keys(headMap)
@@ -83,6 +92,7 @@ const CoinsTable = () => {
                 <Typography variant='h4' sx={{ margin: 10, fontFamily: "Montserrat", fontWeight: 600, fontSize: 50 }}>
                     Crypto Market
                 </Typography>
+                <Category coinList={coinList} setCoinList={setCoinList} setLoading={setLoading}></Category>
                 <TextField
                     id="outlined-basic"
                     label="Search coin..."
@@ -139,9 +149,12 @@ const CoinsTable = () => {
                                 </TableHead>
                                 <TableBody>
                                     {handleSearch().slice((page - 1) * 10, (page - 1) * 10 + 10).map(row => {
-                                        const profit = row.price_change_percentage_24h > 0;
+                                        row.change = Number(row.change)
+                                        row.price = Number(row.price)
+                                        const profit = row?.change
+
                                         return (
-                                            <TableRow onClick={() => navigate(`coins/${row.id}`)} key={row.id} sx={{
+                                            <TableRow onClick={() => navigate(`coins/${row.uuid}`)} key={row.uuid} sx={{
                                                 backgroundColor: "#16171a",
                                                 cursor: "pointer",
                                                 "&:hover": {
@@ -158,7 +171,7 @@ const CoinsTable = () => {
                                                         gap: 5,
                                                     }}>
 
-                                                    <img src={row?.image} alt={row.name} height={'50'} style={{ marginBottom: 10 }}></img>
+                                                    <img src={row?.iconUrl} alt={row.name} height={'50'} style={{ marginBottom: 10 }}></img>
                                                     <div style={{ display: "flex", flexDirection: "column" }}>
                                                         <span style={{
                                                             textTransform: 'uppercase',
@@ -171,10 +184,10 @@ const CoinsTable = () => {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell align='right'>
-                                                    {symbol}{" "}
-                                                    {row.current_price >= 0.01
-                                                        ? numberWithCommas(row.current_price.toFixed(2))
-                                                        : row.current_price.toFixed(6)}
+
+                                                    {row.price >= 0.01
+                                                        ? numberWithCommas(row.price.toFixed(2))
+                                                        : row.price.toFixed(6)}
 
                                                 </TableCell>
                                                 <TableCell align="right"
@@ -182,17 +195,17 @@ const CoinsTable = () => {
                                                         color: profit > 0 ? "rgb(14, 203, 129)" : "red",
                                                         fontWeight: 500,
                                                     }}>
-                                                    {profit && "+"}
-                                                    {row.price_change_percentage_24h.toFixed(2)}%
+                                                    {profit > 0 && "+"}
+                                                    {row.change.toFixed(2)}%
 
 
                                                 </TableCell>
                                                 <TableCell align="right">
 
 
-                                                    {symbol}{" "}
-                                                    {currency === 'USD' ? (numberWithCommas(row.market_cap.toString().slice(0, -6)) + 'M') :
-                                                        (numberWithCommas(row.market_cap.toString().slice(0, -9)) + 'B')}
+                                                    {" "}
+                                                    {row.marketCap ? numberWithCommas((row.marketCap / 1e6).toFixed(2)) + 'M' : ""}
+
                                                 </TableCell>
 
                                             </TableRow>

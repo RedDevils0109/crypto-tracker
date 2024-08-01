@@ -4,8 +4,8 @@ import { Button, Typography } from '@mui/material';
 import { useEffect, useState } from "react";
 import AliceCarousel from "react-alice-carousel";
 import { Link } from "react-router-dom";
-import { TrendingCoins } from "../../config/api";
-import { CryptoState } from "../../CryptoContext";
+import { CoinList, header } from "../../config/api";
+
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
 
@@ -16,19 +16,30 @@ export function numberWithCommas(x) {
 
 const Carousel = () => {
     const [trending, setTrending] = useState([]);
-    const { currency, symbol } = CryptoState();
+
 
     const fetchTrendingCoins = async () => {
-        const { data } = await axios.get(TrendingCoins(currency));
+        const { data } = await axios.get(CoinList(), {
+            headers: header
+        });
+      
 
-        console.log(data);
-        setTrending(data);
+        const { coins } = data.data
+    
+        coins.sort((a, b) => Math.abs(b["24hVolumn"]) - Math.abs(a["24hVolumn"]))
+
+
+        const trends = coins.slice(0, 100)
+
+
+        setTrending(trends);
+     
     };
 
     useEffect(() => {
         fetchTrendingCoins();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currency]);
+
+    }, []);
 
 
     const carousel = {
@@ -50,13 +61,14 @@ const Carousel = () => {
 
 
     const items = trending.map((coin) => {
-        let profit = coin?.price_change_percentage_24h >= 0;
+        let profit = coin?.change >= 0;
 
         return (
-            <Link style={carouselItem} to={`/coins/${coin.id}`}>
+
+            <Link style={carouselItem} to={`/coins/${coin.uuid}`}>
                 <img
-                    src={coin?.image}
-                    alt={coin.name}
+                    src={coin?.iconUrl}
+                    alt={coin.symbol}
                     height="80"
                     style={{ marginBottom: 10 }}
                 />
@@ -70,13 +82,13 @@ const Carousel = () => {
                         }}
                     >
                         {profit && "+"}
-                        {coin?.price_change_percentage_24h?.toFixed(2)}%
+                        {coin?.change}%
                     </span>
                 </span>
                 <span style={{ fontSize: 22, fontWeight: 500 }}>
-                    {symbol} {coin.current_price >= 0.01
-                        ? numberWithCommas(coin.current_price.toFixed(2))
-                        : coin.current_price.toFixed(6)}
+                    {coin.price >= 0.01
+                        ? numberWithCommas(Number(coin.price).toFixed(2))
+                        : Number(coin.price).toFixed(6)}
                 </span>
             </Link>
         );

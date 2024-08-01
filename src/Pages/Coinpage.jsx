@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { CryptoState } from '../CryptoContext';
-import { SingleCoin } from '../config/api';
+
+import { SingleCoin, header } from '../config/api';
 import { styled, LinearProgress, Typography } from '@mui/material';
 import parse from 'html-react-parser';
 import { numberWithCommas } from '../Component/Banner/Carousel';
@@ -11,11 +11,14 @@ import CoinInfo from '../Component/CoinInfo';
 export const Coinpage = () => {
     const { id } = useParams();
     const [coin, setCoin] = useState();
-    const { currency, symbol } = CryptoState();
+
     const fetchCoin = async () => {
-        const response = await axios.get(SingleCoin(id)
+        const { data } = await axios.get(SingleCoin(id), { headers: header }
         )
-        setCoin(response.data)
+        const { coin } = data.data
+   
+        setCoin(coin)
+
     }
     useEffect(() => {
         fetchCoin()
@@ -43,17 +46,19 @@ export const Coinpage = () => {
 
     const Heading = styled('div')({
         fontWeight: "bold",
+        fontSize: "1.5rem",
         marginBottom: 20,
         fontFamily: "Montserrat",
     });
 
     const Description = styled('div')(({ theme }) => ({
         width: "100%",
-        fontFamily: "Montserrat",
+        fontFamily: "Diatype",
         padding: 25,
         paddingBottom: 15,
         paddingTop: 0,
         textAlign: "justify",
+        fontSize: "1.5rem"
     }));
 
     const MarketData = styled('div')(({ theme }) => ({
@@ -77,26 +82,27 @@ export const Coinpage = () => {
     // Your component code
     if (!coin) return <LinearProgress style={{ backgroundColor: "gold" }} />;
 
+
     return (
         <Container>
             <Sidebar>
-                <img
-                    src={coin?.image.large}
+                <a href={coin.websiteUrl} target='_blank'><img
+                    src={coin?.iconUrl}
                     alt={coin?.name}
                     height="200"
                     style={{ marginBottom: 20 }}
-                />
+                /></a>
                 <Heading>
                     {coin?.name}
                 </Heading>
-                <Description>
-                    {parse(coin?.description.en.split(". ")[0])}.
+                <Description >
+                    {parse(coin?.description)}...<a href={coin.websiteUrl} target='_blank'>More</a>
                 </Description>
                 <MarketData>
                     <span style={{ display: "flex" }}>
-                        <Heading>
+                        <Typography>
                             Rank:
-                        </Heading>
+                        </Typography>
                         &nbsp; &nbsp;
                         <Typography
 
@@ -104,14 +110,14 @@ export const Coinpage = () => {
                                 fontFamily: "Montserrat",
                             }}
                         >
-                            {numberWithCommas(coin?.market_cap_rank)}
+                            {numberWithCommas(coin?.rank)}
                         </Typography>
                     </span>
 
                     <span style={{ display: "flex" }}>
-                        <Heading>
+                        <Typography>
                             Current Price:
-                        </Heading>
+                        </Typography>
                         &nbsp; &nbsp;
                         <Typography
 
@@ -119,16 +125,16 @@ export const Coinpage = () => {
                                 fontFamily: "Montserrat",
                             }}
                         >
-                            {symbol}{" "}
-                            {numberWithCommas(
-                                coin?.market_data.current_price[currency.toLowerCase()]
-                            )}
+                            {" "}{Number(coin.price) >= 0.01
+                                ? numberWithCommas(Number(coin.price).toFixed(2))
+                                : Number(coin.price).toFixed(6)}{" $"}
+
                         </Typography>
                     </span>
                     <span style={{ display: "flex" }}>
-                        <Heading>
+                        <Typography>
                             Market Cap:
-                        </Heading>
+                        </Typography>
                         &nbsp; &nbsp;
                         <Typography
 
@@ -136,9 +142,26 @@ export const Coinpage = () => {
                                 fontFamily: "Montserrat",
                             }}
                         >
-                            {symbol}{" "}
-                            {currency === 'USD' ? (numberWithCommas(coin?.market_data.market_cap[currency.toLowerCase()].toString().slice(0, -6)) + 'M') :
-                                (numberWithCommas(coin?.market_data.market_cap[currency.toLowerCase()].toString().slice(0, -9)) + 'B')}
+                            {" "}  {(numberWithCommas(coin.marketCap.toString().slice(0, -6)) + 'M')
+                            }{" $"}
+
+                        </Typography>
+                    </span>
+                    <span style={{ display: "flex" }}>
+                        <Typography>
+                            All time high:
+                        </Typography>
+                        &nbsp; &nbsp;
+                        <Typography
+
+                            style={{
+                                fontFamily: "Montserrat",
+                            }}
+                        >
+                            {" "}{Number(coin.allTimeHigh.price) >= 0.01
+                                ? numberWithCommas(Number(coin.allTimeHigh.price).toFixed(2))
+                                : Number(coin.allTimeHigh.price).toFixed(6)}{" $ "}{` (${new Date(coin.allTimeHigh.timestamp * 1000).toLocaleDateString()})`}
+
                         </Typography>
                     </span>
                 </MarketData>
