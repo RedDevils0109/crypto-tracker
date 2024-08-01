@@ -35,21 +35,27 @@ const CoinInfo = ({ coin }) => {
     const [days, setDays] = useState('24h');
     const [coinPrice, setCoinPrice] = useState([]);
     const [coinTimeStamp, setCoinTimeStamp] = useState([]);
+    const [loading, setLoading] = useState(true)
 
     useEffect(() => {
+
         const fetchHistoricalData = async () => {
             try {
                 console.log("Fetching data for days:", days);
+                setLoading(true)
                 const { data } = await axios.get(HistoricalChart(coin.uuid, days), { headers: header });
                 const { history } = data.data;
                 console.log("Fetched history:", history);
                 setHistoricalData(history);
+                setLoading(false)
             } catch (error) {
                 console.error("Error fetching historical data:", error);
             }
         };
 
+
         fetchHistoricalData();
+
     }, [days]);
 
     useEffect(() => {
@@ -130,7 +136,7 @@ const CoinInfo = ({ coin }) => {
     return (
         <ThemeProvider theme={darkTheme}>
             <ChartContainer>
-                {!historicalData.length ? (
+                {loading ? (
                     <CircularProgress style={{ color: "gold" }} size={250} thickness={1} />
                 ) : (
                     <>
